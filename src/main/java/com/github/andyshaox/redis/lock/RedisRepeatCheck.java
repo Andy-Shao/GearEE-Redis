@@ -34,7 +34,7 @@ public class RedisRepeatCheck implements RepeatCheck {
         try {
             conn = this.connFactory.getConnection();
             result = this.isRepeat(conn , uniqueKey);
-            if(result) this.setExpire(conn , uniqueKey , mode , times);
+            if(!result) this.setExpire(conn , uniqueKey , mode , times);
         } finally {
             if(conn != null) conn.close();
         }
