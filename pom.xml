@@ -8,7 +8,7 @@
     <version>0.0.1.RELEASE</version>
     <packaging>jar</packaging>
     <name>Gear</name>
-    <description>GearEE for Zookeeper support</description>
+    <description>GearEE for Redis support</description>
     <url>https://github.com/Andy-Shao/GearEE-ZK</url>
     <inceptionYear>2018</inceptionYear>
     <licenses>
@@ -27,9 +27,9 @@
         </developer>
     </developers>
     <scm>
-        <connection>scm:git:https://github.com/Andy-Shao/GearEE-ZK.git</connection>
-        <developerConnection>scm:git:https://github.com/Andy-Shao/GearEE-ZK.git</developerConnection>
-        <url>https://github.com/Andy-Shao/GearEE-ZK.git</url>
+        <connection>scm:git:https://github.com/Andy-Shao/GearEE-Redis.git</connection>
+        <developerConnection>scm:git:https://github.com/Andy-Shao/GearEE-Redis.git</developerConnection>
+        <url>https://github.com/Andy-Shao/GearEE-Redis.git</url>
     </scm>
     <issueManagement>
         <system>jira</system>
