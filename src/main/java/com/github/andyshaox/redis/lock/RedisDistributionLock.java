@@ -2,11 +2,14 @@ package com.github.andyshaox.redis.lock;
 
 import java.util.Date;
 import java.util.Objects;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisStringCommands.SetOption;
+import org.springframework.data.redis.core.types.Expiration;
 
 import com.github.andyshao.lock.DistributionLock;
 import com.github.andyshao.lock.ExpireMode;
@@ -159,24 +162,30 @@ public class RedisDistributionLock implements DistributionLock {
 
     private boolean tryAcquireLock(RedisConnection conn, ExpireMode expireMode, int expireTimes) {
         long l = new Date().getTime();
+        Expiration expiration = null;
         switch(expireMode) {
         case MILISECONDS:
             l = l + expireTimes;
+            expiration = Expiration.from(expireTimes, TimeUnit.MILLISECONDS);
             break;
         case SECONDS:
             l = l + (expireTimes * 1000);
+            expiration = Expiration.from(expireTimes, TimeUnit.SECONDS);
             break;
                 
         case IGNORE:
-            l = Long.MAX_VALUE;
         default :
+        	l = Long.MAX_VALUE;
+        	expiration = Expiration.persistent();
             break;
         }
         if(this.lockOwer.isOwner()) {
             this.lockOwer.setTimeSign(l);
             return this.lockOwer.increment();
         }
-        Boolean result = conn.setNX(this.lockKey , this.lockKey);
+//        Boolean result = conn.setNX(this.lockKey , this.lockKey);
+        byte[] value = (DEFAULT_KEY + String.valueOf(new Random().nextLong())).getBytes();
+        Boolean result = conn.set(this.lockKey, value, expiration, SetOption.SET_IF_ABSENT);
         if(result) {
             this.lockOwer.setTimeSign(l);
             this.lockOwer.increment();
