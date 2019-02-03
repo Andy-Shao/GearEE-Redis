@@ -2,14 +2,20 @@ package com.github.andyshaox.redis.lock;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Random;
 
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisStringCommands.SetOption;
+import org.springframework.data.redis.core.types.Expiration;
 
+import com.github.andyshao.lang.ByteOperation;
 import com.github.andyshao.lock.DistributionLock;
 import com.github.andyshao.lock.ExpireMode;
 import com.github.andyshao.lock.LockException;
 import com.github.andyshao.lock.RepeatCheck;
+
+import lombok.Setter;
 
 /**
  * 
@@ -22,6 +28,9 @@ import com.github.andyshao.lock.RepeatCheck;
  */
 public class RedisRepeatCheck implements RepeatCheck {
     private final RedisConnectionFactory connFactory;
+    public static final String DEFAULT_REPEACH_CHECK_HEAD = "RedisRepeatCheck:";
+    @Setter
+    private volatile String repeatCheckHead = DEFAULT_REPEACH_CHECK_HEAD;
     
     public RedisRepeatCheck(RedisConnectionFactory connFactory) {
         this.connFactory = connFactory;
@@ -33,8 +42,9 @@ public class RedisRepeatCheck implements RepeatCheck {
         RedisConnection conn = null;
         try {
             conn = this.connFactory.getConnection();
-            result = this.isRepeat(conn , uniqueKey);
-            if(!result) this.setExpire(conn , uniqueKey , mode , times);
+//            result = this.isRepeat(conn , uniqueKey);
+//            if(!result) this.setExpire(conn , uniqueKey , mode , times);
+            result = this.isRepeat(conn, uniqueKey, mode, times);
         } finally {
             if(conn != null) conn.close();
         }
@@ -97,11 +107,39 @@ public class RedisRepeatCheck implements RepeatCheck {
         }
     }
     
-    private boolean isRepeat(RedisConnection conn, String key) {
-        return !conn.setNX(md5Key(key), md5Key(key));
+    boolean isRepeat(RedisConnection conn, String key) {
+//        return !conn.setNX(md5Key(key), md5Key(key));
+    	return isRepeat(conn, key, ExpireMode.SECONDS, 5 * 60);
     }
     
-    private boolean setExpire(RedisConnection conn, String key, ExpireMode mode, int times) {
+    boolean isRepeat(RedisConnection conn, String key, ExpireMode mode, int times) {
+    	Expiration expiration = null;
+    	switch (mode) {
+		case SECONDS:
+			expiration = Expiration.seconds(times);
+			break;
+		case MILISECONDS:
+			expiration = Expiration.milliseconds(times);
+			break;
+		case IGNORE:
+		default:
+			expiration = Expiration.persistent();
+			break;
+		}
+    	return !conn.set(buildKey(key), md5Key(key + new Random().nextLong()), expiration, SetOption.SET_IF_ABSENT);
+    }
+    
+    byte[] buildKey(String key) {
+    	byte[] head = this.repeatCheckHead.getBytes();
+    	byte[] body = md5Key(key);
+    	byte[] rest = new byte[head.length + body.length];
+    	System.arraycopy(head, 0, rest, 0, head.length);
+    	System.arraycopy(body, 0, rest, head.length, body.length);
+    	
+    	return rest;
+    }
+    
+	boolean setExpire(RedisConnection conn, String key, ExpireMode mode, int times) {
         final byte[] keyBytes = md5Key(key);
         switch (mode) {
         case SECONDS:
