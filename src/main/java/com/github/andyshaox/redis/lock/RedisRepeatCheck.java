@@ -9,7 +9,6 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.RedisStringCommands.SetOption;
 import org.springframework.data.redis.core.types.Expiration;
 
-import com.github.andyshao.lang.ByteOperation;
 import com.github.andyshao.lock.DistributionLock;
 import com.github.andyshao.lock.ExpireMode;
 import com.github.andyshao.lock.LockException;
