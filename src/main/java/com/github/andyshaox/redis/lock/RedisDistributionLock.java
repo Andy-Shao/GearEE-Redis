@@ -13,6 +13,7 @@ import org.springframework.data.redis.core.types.Expiration;
 
 import com.github.andyshao.lock.DistributionLock;
 import com.github.andyshao.lock.ExpireMode;
+import com.github.andyshao.lock.LockException;
 
 /**
  * 
@@ -28,6 +29,7 @@ public class RedisDistributionLock implements DistributionLock {
     public static final String DEFAULT_KEY = RedisDistributionLock.class.getName() + "_DISTRIBUTION_LOCK_KEY";
     private final RedisConnectionFactory connFactory;
     private final byte[] lockKey;
+    private volatile byte[] lockValue;
     private final int sleepTime;
     private final TimeUnit sleepTimeUnit;
     private final RedisDistributionLock.LockOwer lockOwer = this.new LockOwer();
@@ -183,9 +185,8 @@ public class RedisDistributionLock implements DistributionLock {
             this.lockOwer.setTimeSign(l);
             return this.lockOwer.increment();
         }
-//        Boolean result = conn.setNX(this.lockKey , this.lockKey);
-        byte[] value = (DEFAULT_KEY + String.valueOf(new Random().nextLong())).getBytes();
-        Boolean result = conn.set(this.lockKey, value, expiration, SetOption.SET_IF_ABSENT);
+        this.lockValue = (DEFAULT_KEY + String.valueOf(new Random().nextLong())).getBytes();
+        Boolean result = conn.set(this.lockKey, this.lockValue, expiration, SetOption.SET_IF_ABSENT);
         if(result) {
             this.lockOwer.setTimeSign(l);
             this.lockOwer.increment();
@@ -217,6 +218,8 @@ public class RedisDistributionLock implements DistributionLock {
             RedisConnection conn = null;
             try {
                 conn = this.connFactory.getConnection();
+                byte[] value = conn.get(this.lockKey);
+                if(!Objects.deepEquals(value, this.lockValue)) throw new LockException("You're not own the lock");
                 conn.del(this.lockKey);
             } finally {
                 if (conn != null) conn.close();
