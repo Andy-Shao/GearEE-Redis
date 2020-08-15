@@ -29,45 +29,12 @@ public class RedisDistributionLockIntegrationTest extends IntegrationTest {
     @Test
     public void testMixLock() throws InterruptedException {
         final RedisDistributionLock lock = new RedisDistributionLock(connectFactory, "GearEE-Redis:DistributionLock:testMixLock");
-        final CountDownLatch waitEnd = new CountDownLatch(2);
-        final CountDownLatch left = new CountDownLatch(1);
-        final CountDownLatch right = new CountDownLatch(1);
-        Thread leftThread = new Thread(()->{
-            try {
-                lock.lock();
-                lock.lock();
-            } finally {
-                lock.unlock();
-                log.info("left countDown");
-                left.countDown();
-                try {
-                    right.await();
-                } catch (InterruptedException e) {
-                    Assert.fail();
-                }
-                lock.unlock();
-            }
-            waitEnd.countDown();
-        });
-        Thread rightThread = new Thread(()->{
-            try {
-                try {
-                    left.await();
-                } catch (InterruptedException e) {
-                    Assert.fail();
-                }
-                boolean hasLock = lock.tryLock();
-                Assert.assertFalse(hasLock);
-            } finally {
-                lock.unlock();
-                right.countDown();
-                log.info("right countDown");
-            }
-            waitEnd.countDown();
-        });
-        leftThread.start();
-        rightThread.start();
-        
-        waitEnd.await();
+        try {
+            lock.lock();
+            lock.lock();
+        } finally {
+            lock.unlock();
+            lock.unlock();
+        }
     }
 }
