@@ -1,14 +1,13 @@
 package com.github.andyshaox.redis.lock;
 
-import java.util.concurrent.TimeUnit;
-
-import org.junit.Assert;
-import org.junit.Test;
+import com.github.andyshao.lock.ExpireMode;
+import com.github.andyshaox.redis.IntegrationTest;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 
-import com.github.andyshao.lock.ExpireMode;
-import com.github.andyshaox.redis.IntegrationTest;
+import java.util.concurrent.TimeUnit;
 
 public class RedisRepeatCheckIntegrationTest extends IntegrationTest {
     @Autowired
@@ -18,9 +17,9 @@ public class RedisRepeatCheckIntegrationTest extends IntegrationTest {
     public void testRepeatCheck() throws InterruptedException {
         RedisRepeatCheck repeatCheck = new RedisRepeatCheck(connectFactory);
         boolean isRepeat = repeatCheck.isRepeat("GearEE-Redis:RepeatCheck:testRepeatCheck" , ExpireMode.MILISECONDS , 200);
-        Assert.assertFalse(isRepeat);
+        Assertions.assertThat(isRepeat).isFalse();
         isRepeat = repeatCheck.isRepeat("GearEE-Redis:RepeatCheck:testRepeatCheck");
-        Assert.assertTrue(isRepeat);
+        Assertions.assertThat(isRepeat).isTrue();
         TimeUnit.SECONDS.sleep(1);
         isRepeat = repeatCheck.isRepeat("GearEE-Redis:RepeatCheck:testRepeatCheck" , ExpireMode.MILISECONDS , 200);
     }

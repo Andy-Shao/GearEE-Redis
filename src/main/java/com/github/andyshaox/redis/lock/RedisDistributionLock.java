@@ -1,19 +1,17 @@
 package com.github.andyshaox.redis.lock;
 
+import com.github.andyshao.lock.DistributionLock;
+import com.github.andyshao.lock.ExpireMode;
+import com.github.andyshao.lock.LockException;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.types.Expiration;
+
 import java.util.Date;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.RedisStringCommands.SetOption;
-import org.springframework.data.redis.core.types.Expiration;
-
-import com.github.andyshao.lock.DistributionLock;
-import com.github.andyshao.lock.ExpireMode;
-import com.github.andyshao.lock.LockException;
 
 /**
  * 
@@ -124,12 +122,16 @@ public class RedisDistributionLock implements DistributionLock {
         RedisConnection conn = null;
         try {
             conn = this.connFactory.getConnection();
+            boolean hasLock = true;
             while (!this.tryAcquireLock(conn, expireMode, expireTimes))
-                try {
-                    this.sleep();
-                } catch (InterruptedException e) {
+                switch (expireMode) {
+                    case IGNORE:
+                        continue;
+                    default:
+                        hasLock = false;
+                        break;
                 }
-            this.addExpireTime(conn , expireMode , expireTimes);
+            if(hasLock) this.addExpireTime(conn , expireMode , expireTimes);
         } finally {
             if (conn != null) conn.close();
         }
@@ -145,14 +147,19 @@ public class RedisDistributionLock implements DistributionLock {
         RedisConnection conn = null;
         try {
             conn = this.connFactory.getConnection();
-            boolean isGet = false;
+            boolean hasLock = true;
             //间隔一段时间获取锁，直到获取
-            while (!isGet) {
+            while (!this.tryAcquireLock(conn, expireMode, expireTimes)) {
                 if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
-                isGet = this.tryAcquireLock(conn, expireMode, expireTimes);
-                this.sleep();
+                switch (expireMode) {
+                    case IGNORE:
+                        continue;
+                    default:
+                        hasLock = false;
+                        break;
+                }
             }
-            this.addExpireTime(conn , expireMode , expireTimes);
+            if(hasLock) this.addExpireTime(conn , expireMode , expireTimes);
         } finally {
             if (conn != null) conn.close();
         }
@@ -186,7 +193,8 @@ public class RedisDistributionLock implements DistributionLock {
             return this.lockOwer.increment();
         }
         this.lockValue = (DEFAULT_KEY + String.valueOf(new Random().nextLong())).getBytes();
-        Boolean result = conn.set(this.lockKey, this.lockValue, expiration, SetOption.SET_IF_ABSENT);
+//        Boolean result = conn.set(this.lockKey, this.lockValue, expiration, SetOption.SET_IF_ABSENT);
+        Boolean result = conn.setNX(this.lockKey, this.lockValue);
         if(result) {
             this.lockOwer.setTimeSign(l);
             this.lockOwer.increment();

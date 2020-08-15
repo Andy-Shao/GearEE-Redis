@@ -1,12 +1,10 @@
 package com.github.andyshaox.redis.lock;
 
-import org.junit.Test;
+import com.github.andyshaox.redis.IntegrationTest;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-
-import com.github.andyshaox.redis.IntegrationTest;
-
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class RedisDistributionLockIntegrationTest extends IntegrationTest {
