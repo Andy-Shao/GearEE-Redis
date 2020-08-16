@@ -17,19 +17,11 @@ class RedisReactorDistributionLockTest extends IntegrationTest {
     private ReactiveRedisConnectionFactory factory;
 
     @Test
-    void unlock() {
-    }
-
-    @Test
-    void lock() {
-    }
-
-    @Test
     void tryLock() {
         RedisReactorDistributionLock lock =
                 new RedisReactorDistributionLock(this.factory, "GearEE-Redis:ReactorDistributionLock:tryLock");
         final ReactorDistributionLockSign lockSign = new ReactorDistributionLockSign(UUID.randomUUID());
-        lock.tryLock(lockSign, ExpireMode.IGNORE, 100)
+        lock.tryLock(lockSign, ExpireMode.SECONDS, 100)
                 .flatMap(hasLock -> {
                     log.info("Is Getting the lock ? {}", hasLock);
                     if(hasLock) return lock.unlockLater(lockSign);

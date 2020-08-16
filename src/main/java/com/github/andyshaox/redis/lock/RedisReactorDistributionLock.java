@@ -70,7 +70,7 @@ public class RedisReactorDistributionLock implements ReactorDistributionLock {
                                 .flatMap(omitNum -> Mono.create(MonoSink::success));
                     } else return Mono.create(MonoSink::success);
                 })
-                .doFinally(signalType -> conn.close());
+                .doFinally(signalType -> conn.closeLater().subscribe());
     }
 
     @Override
@@ -110,7 +110,7 @@ public class RedisReactorDistributionLock implements ReactorDistributionLock {
                     }
                     return Mono.just(false);
                 })
-                .doFinally(signalType -> conn.close());
+                .doFinally(signalType -> conn.closeLater().subscribe());
     }
 
     private static class LockSign {
