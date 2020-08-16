@@ -1,11 +1,11 @@
 package com.github.andyshaox.redis;
 
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.annotation.IfProfileValue;
+import org.springframework.test.context.junit.jupiter.EnabledIf;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @SpringBootTest
-@IfProfileValue(name = IntegrationTest.name, value = IntegrationTest.value)
-public abstract class IntegrationTest {
-    public static final String name = "integration.test";
-    public static final String value = "true";
-}
+@ExtendWith({SpringExtension.class})
+@EnabledIf(expression = "${integration.test}", loadContext = true)
+public abstract class IntegrationTest { }
