@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  */
 public class RedisDistributionLock implements DistributionLock {
-    public static final String DEFAULT_KEY = RedisDistributionLock.class.getName() + "_DISTRIBUTION_LOCK_KEY";
+    public static final String DEFAULT_KEY = "DISTRIBUTION_LOCK_KEY";
     private final RedisConnectionFactory connFactory;
     private final byte[] lockKey;
     private volatile byte[] lockValue;
@@ -133,7 +133,9 @@ public class RedisDistributionLock implements DistributionLock {
                             hasLock = false;
                             break;
                     }
-                } catch (InterruptedException ex) {}
+                } catch (InterruptedException ex) {
+                    throw new LockException(ex);
+                }
             if(hasLock) this.addExpireTime(conn , expireMode , expireTimes);
         } finally {
             if (conn != null) conn.close();

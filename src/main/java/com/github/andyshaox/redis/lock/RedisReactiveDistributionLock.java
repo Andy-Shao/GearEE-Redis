@@ -1,8 +1,8 @@
 package com.github.andyshaox.redis.lock;
 
 import com.github.andyshao.lock.ExpireMode;
-import com.github.andyshao.lock.ReactorDistributionLock;
-import com.github.andyshao.lock.ReactorDistributionLockSign;
+import com.github.andyshao.lock.ReactiveDistributionLock;
+import com.github.andyshao.lock.ReactiveDistributionLockSign;
 import org.springframework.data.redis.connection.ReactiveRedisConnection;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.core.types.Expiration;
@@ -26,8 +26,8 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @author Andy.Shao
  */
-public class RedisReactorDistributionLock implements ReactorDistributionLock {
-    public static final String DEFAULT_KEY = RedisDistributionLock.class.getName() + "_REACTOR_DISTRIBUTION_LOCK_KEY";
+public class RedisReactiveDistributionLock implements ReactiveDistributionLock {
+    public static final String DEFAULT_KEY = "REACTOR_DISTRIBUTION_LOCK_KEY";
     private final ReactiveRedisConnectionFactory redisConnectionFactory;
     private final byte[] lockKey;
     private volatile byte[] lockValue;
@@ -35,19 +35,19 @@ public class RedisReactorDistributionLock implements ReactorDistributionLock {
     private final TimeUnit sleepTimeUnit;
     private final LockOwner lockOwer = new LockOwner();
 
-    public RedisReactorDistributionLock(ReactiveRedisConnectionFactory redisConnectionFactory) {
+    public RedisReactiveDistributionLock(ReactiveRedisConnectionFactory redisConnectionFactory) {
         this(redisConnectionFactory, DEFAULT_KEY);
     }
 
-    public RedisReactorDistributionLock(ReactiveRedisConnectionFactory redisConnectionFactory, String lockKey) {
+    public RedisReactiveDistributionLock(ReactiveRedisConnectionFactory redisConnectionFactory, String lockKey) {
         this(redisConnectionFactory, lockKey.getBytes());
     }
 
-    public RedisReactorDistributionLock(ReactiveRedisConnectionFactory redisConnectionFactory, byte[] lockKey) {
+    public RedisReactiveDistributionLock(ReactiveRedisConnectionFactory redisConnectionFactory, byte[] lockKey) {
         this(redisConnectionFactory, lockKey, TimeUnit.NANOSECONDS, 100);
     }
-    public RedisReactorDistributionLock(ReactiveRedisConnectionFactory redisConnectionFactory, byte[] lockKey,
-                                        TimeUnit sleepTimeUnit, int sleepTime) {
+    public RedisReactiveDistributionLock(ReactiveRedisConnectionFactory redisConnectionFactory, byte[] lockKey,
+                                         TimeUnit sleepTimeUnit, int sleepTime) {
         this.redisConnectionFactory = redisConnectionFactory;
         this.lockKey = lockKey;
         this.sleepTime = sleepTime;
@@ -55,12 +55,12 @@ public class RedisReactorDistributionLock implements ReactorDistributionLock {
     }
 
     @Override
-    public void unlock(ReactorDistributionLockSign sign) {
+    public void unlock(ReactiveDistributionLockSign sign) {
         this.unlockLater(sign).block();
     }
 
     @Override
-    public Mono<Void> unlockLater(ReactorDistributionLockSign sign) {
+    public Mono<Void> unlockLater(ReactiveDistributionLockSign sign) {
         final ReactiveRedisConnection conn = this.redisConnectionFactory.getReactiveConnection();
         return Mono.<Boolean>just(this.lockOwer.canUnlock(sign))
                 .<Void>flatMap(canUnLock -> {
@@ -74,12 +74,12 @@ public class RedisReactorDistributionLock implements ReactorDistributionLock {
     }
 
     @Override
-    public Mono<Void> lock(ReactorDistributionLockSign sign) {
+    public Mono<Void> lock(ReactiveDistributionLockSign sign) {
         return lock(sign, ExpireMode.IGNORE, 1000);
     }
 
     @Override
-    public Mono<Void> lock(ReactorDistributionLockSign sign, ExpireMode mode, int times) {
+    public Mono<Void> lock(ReactiveDistributionLockSign sign, ExpireMode mode, int times) {
         return tryLock(sign, mode, times)
                 .flatMap(hasLock -> {
                     if(!hasLock) {
@@ -95,12 +95,12 @@ public class RedisReactorDistributionLock implements ReactorDistributionLock {
     }
 
     @Override
-    public Mono<Boolean> tryLock(ReactorDistributionLockSign sign) {
+    public Mono<Boolean> tryLock(ReactiveDistributionLockSign sign) {
         return tryLock(sign, ExpireMode.IGNORE, 1000);
     }
 
     @Override
-    public Mono<Boolean> tryLock(ReactorDistributionLockSign sign, ExpireMode expireMode, int expireTimes) {
+    public Mono<Boolean> tryLock(ReactiveDistributionLockSign sign, ExpireMode expireMode, int expireTimes) {
         final ReactiveRedisConnection conn = this.redisConnectionFactory.getReactiveConnection();
         return tryAcquireLock(sign, conn, expireMode, expireTimes)
                 .flatMap(hasLock -> {
@@ -114,7 +114,7 @@ public class RedisReactorDistributionLock implements ReactorDistributionLock {
     }
 
     private static class LockSign {
-        protected volatile ReactorDistributionLockSign sign;
+        protected volatile ReactiveDistributionLockSign sign;
         protected volatile AtomicLong size = new AtomicLong(0L);
         protected volatile long timeSign = 0;
 
@@ -159,14 +159,14 @@ public class RedisReactorDistributionLock implements ReactorDistributionLock {
             }
         }
 
-        public boolean isOwner(ReactorDistributionLockSign sign) {
+        public boolean isOwner(ReactiveDistributionLockSign sign) {
             LockSign ls = this.lockSign.get();
             LockSign myLs = ls.copy();
             myLs.sign = sign;
             return this.lockSign.compareAndSet(myLs, ls);
         }
 
-        public boolean increment(ReactorDistributionLockSign sign) {
+        public boolean increment(ReactiveDistributionLockSign sign) {
             for(;;) {
                 LockSign ls = this.lockSign.get();
                 LockSign newLs = ls.copy();
@@ -183,7 +183,7 @@ public class RedisReactorDistributionLock implements ReactorDistributionLock {
             }
         }
 
-        public boolean canUnlock(ReactorDistributionLockSign sign) {
+        public boolean canUnlock(ReactiveDistributionLockSign sign) {
             for(;;) {
                 LockSign ls = this.lockSign.get();
                 LockSign newLs = ls.copy();
@@ -208,7 +208,7 @@ public class RedisReactorDistributionLock implements ReactorDistributionLock {
         }
     }
 
-    private Mono<Boolean> tryAcquireLock(ReactorDistributionLockSign sign, ReactiveRedisConnection conn,
+    private Mono<Boolean> tryAcquireLock(ReactiveDistributionLockSign sign, ReactiveRedisConnection conn,
                                          ExpireMode expireMode, int expireTimes) {
         long l = new Date().getTime();
         Expiration expiration = null;
@@ -244,8 +244,7 @@ public class RedisReactorDistributionLock implements ReactorDistributionLock {
     }
 
     private Mono<Boolean> addExpireTime(ReactiveRedisConnection conn , ExpireMode expireMode , int expireTimes) {
-        if(expireTimes < 0) throw new IllegalArgumentException();
-        if(expireTimes == 0) return Mono.just(true);
+        if(expireTimes <= 0) return Mono.just(true);
         //设置锁的使用超时时间
         switch (expireMode) {
             case SECONDS:

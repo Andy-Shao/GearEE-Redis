@@ -1,7 +1,7 @@
 package com.github.andyshaox.redis.lock;
 
 import com.github.andyshao.lock.ExpireMode;
-import com.github.andyshao.lock.ReactorDistributionLockSign;
+import com.github.andyshao.lock.ReactiveDistributionLockSign;
 import com.github.andyshaox.redis.IntegrationTest;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -12,15 +12,15 @@ import reactor.core.publisher.Mono;
 import java.util.UUID;
 
 @Slf4j
-class RedisReactorDistributionLockTest extends IntegrationTest {
+class RedisReactiveDistributionLockTest extends IntegrationTest {
     @Autowired
     private ReactiveRedisConnectionFactory factory;
 
     @Test
     void tryLock() {
-        RedisReactorDistributionLock lock =
-                new RedisReactorDistributionLock(this.factory, "GearEE-Redis:ReactorDistributionLock:tryLock");
-        final ReactorDistributionLockSign lockSign = new ReactorDistributionLockSign(UUID.randomUUID());
+        RedisReactiveDistributionLock lock =
+                new RedisReactiveDistributionLock(this.factory, "GearEE-Redis:ReactorDistributionLock:tryLock");
+        final ReactiveDistributionLockSign lockSign = new ReactiveDistributionLockSign(UUID.randomUUID());
         lock.tryLock(lockSign, ExpireMode.SECONDS, 100)
                 .flatMap(hasLock -> {
                     log.info("Is Getting the lock ? {}", hasLock);

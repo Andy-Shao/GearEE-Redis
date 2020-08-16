@@ -1,20 +1,17 @@
 package com.github.andyshaox.redis.lock;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Random;
-
-import org.springframework.data.redis.connection.RedisConnection;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.connection.RedisStringCommands.SetOption;
-import org.springframework.data.redis.core.types.Expiration;
-
 import com.github.andyshao.lock.DistributionLock;
 import com.github.andyshao.lock.ExpireMode;
 import com.github.andyshao.lock.LockException;
 import com.github.andyshao.lock.RepeatCheck;
-
 import lombok.Setter;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.types.Expiration;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Random;
 
 /**
  * 
@@ -41,8 +38,6 @@ public class RedisRepeatCheck implements RepeatCheck {
         RedisConnection conn = null;
         try {
             conn = this.connFactory.getConnection();
-//            result = this.isRepeat(conn , uniqueKey);
-//            if(!result) this.setExpire(conn , uniqueKey , mode , times);
             result = this.isRepeat(conn, uniqueKey, mode, times);
         } finally {
             if(conn != null) conn.close();
@@ -55,7 +50,7 @@ public class RedisRepeatCheck implements RepeatCheck {
         return this.isRepeat(uniqueKey, ExpireMode.SECONDS, 5 * 60);
     }
 
-    @Override
+    @Deprecated
     public DistributionLock repeatCheckLock(String uniqueKey , ExpireMode mode , int times) {
         return new DistributionLock() {
             private DistributionLock proxied = new RedisDistributionLock(connFactory, md5Key(uniqueKey));
@@ -97,7 +92,7 @@ public class RedisRepeatCheck implements RepeatCheck {
         };
     }
 
-    private static byte[] md5Key(String key) {
+    protected static byte[] md5Key(String key) {
         try {
             MessageDigest md5 = MessageDigest.getInstance("MD5");
             return md5.digest(key.getBytes());
@@ -107,11 +102,10 @@ public class RedisRepeatCheck implements RepeatCheck {
     }
     
     boolean isRepeat(RedisConnection conn, String key) {
-//        return !conn.setNX(md5Key(key), md5Key(key));
     	return isRepeat(conn, key, ExpireMode.SECONDS, 5 * 60);
     }
     
-    boolean isRepeat(RedisConnection conn, String key, ExpireMode mode, int times) {
+    private boolean isRepeat(RedisConnection conn, String key, ExpireMode mode, int times) {
     	Expiration expiration = null;
     	switch (mode) {
 		case SECONDS:
@@ -125,10 +119,14 @@ public class RedisRepeatCheck implements RepeatCheck {
 			expiration = Expiration.persistent();
 			break;
 		}
-    	return !conn.set(buildKey(key), md5Key(key + new Random().nextLong()), expiration, SetOption.SET_IF_ABSENT);
+//    	return !conn.set(buildKey(key), md5Key(key + new Random().nextLong()), expiration, SetOption.SET_IF_ABSENT);
+        final byte[] md5Key = md5Key(key + new Random().nextLong());
+        boolean result = !conn.setNX(buildKey(key), md5Key);
+    	if(result) setExpire(conn, md5Key, mode, times);
+        return result;
     }
     
-    byte[] buildKey(String key) {
+    private byte[] buildKey(String key) {
     	byte[] head = this.repeatCheckHead.getBytes();
     	byte[] body = md5Key(key);
     	byte[] rest = new byte[head.length + body.length];
@@ -138,13 +136,12 @@ public class RedisRepeatCheck implements RepeatCheck {
     	return rest;
     }
     
-	boolean setExpire(RedisConnection conn, String key, ExpireMode mode, int times) {
-        final byte[] keyBytes = md5Key(key);
+	boolean setExpire(RedisConnection conn, byte[] key, ExpireMode mode, int times) {
         switch (mode) {
         case SECONDS:
-            return conn.expire(keyBytes, times);
+            return conn.expire(key, times);
         case MILISECONDS:
-            return conn.pExpire(keyBytes, times);
+            return conn.pExpire(key, times);
         default:
             return false;
         }
