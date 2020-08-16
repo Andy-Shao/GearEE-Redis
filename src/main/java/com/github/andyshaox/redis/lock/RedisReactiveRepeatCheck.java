@@ -5,7 +5,6 @@ import com.github.andyshao.lock.ReactiveRepeatCheck;
 import lombok.Setter;
 import org.springframework.data.redis.connection.ReactiveRedisConnection;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
-import org.springframework.data.redis.core.types.Expiration;
 import reactor.core.publisher.Mono;
 
 import java.nio.ByteBuffer;
@@ -43,21 +42,9 @@ public class RedisReactiveRepeatCheck implements ReactiveRepeatCheck {
     }
 
     private Mono<Boolean> isRepeat(ReactiveRedisConnection conn, String key, ExpireMode mode, int times) {
-        Expiration expiration = null;
-        switch (mode) {
-            case SECONDS:
-                expiration = Expiration.seconds(times);
-                break;
-            case MILISECONDS:
-                expiration = Expiration.milliseconds(times);
-                break;
-            case IGNORE:
-            default:
-                expiration = Expiration.persistent();
-                break;
-        }
-        final byte[] md5Key = RedisRepeatCheck.md5Key(key + new Random().nextLong());
-        return conn.stringCommands().setNX(ByteBuffer.wrap(buildKey(key)), ByteBuffer.wrap(md5Key))
+        final byte[] md5Value = RedisRepeatCheck.md5Key(key + new Random().nextLong());
+        final byte[] md5Key = buildKey(key);
+        return conn.stringCommands().setNX(ByteBuffer.wrap(md5Key), ByteBuffer.wrap(md5Value))
                 .map(isSuccess -> !isSuccess)
                 .flatMap(isRepeat -> {
                     if(!isRepeat) {
