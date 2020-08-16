@@ -7,7 +7,6 @@ import com.github.andyshao.lock.RepeatCheck;
 import lombok.Setter;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.core.types.Expiration;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -106,24 +105,11 @@ public class RedisRepeatCheck implements RepeatCheck {
     }
     
     private boolean isRepeat(RedisConnection conn, String key, ExpireMode mode, int times) {
-    	Expiration expiration = null;
-    	switch (mode) {
-		case SECONDS:
-			expiration = Expiration.seconds(times);
-			break;
-		case MILISECONDS:
-			expiration = Expiration.milliseconds(times);
-			break;
-		case IGNORE:
-		default:
-			expiration = Expiration.persistent();
-			break;
-		}
-//    	return !conn.set(buildKey(key), md5Key(key + new Random().nextLong()), expiration, SetOption.SET_IF_ABSENT);
-        final byte[] md5Key = md5Key(key + new Random().nextLong());
-        boolean result = !conn.setNX(buildKey(key), md5Key);
+        final byte[] md5Value = md5Key(key + new Random().nextLong());
+        byte[] md5Key = buildKey(key);
+        boolean result = conn.setNX(md5Key, md5Value);
     	if(result) setExpire(conn, md5Key, mode, times);
-        return result;
+        return !result;
     }
     
     private byte[] buildKey(String key) {
