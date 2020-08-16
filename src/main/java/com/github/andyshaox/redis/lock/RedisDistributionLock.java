@@ -124,13 +124,16 @@ public class RedisDistributionLock implements DistributionLock {
             conn = this.connFactory.getConnection();
             boolean hasLock = true;
             while (!this.tryAcquireLock(conn, expireMode, expireTimes))
-                switch (expireMode) {
-                    case IGNORE:
-                        continue;
-                    default:
-                        hasLock = false;
-                        break;
-                }
+                try {
+                    switch (expireMode) {
+                        case IGNORE:
+                            TimeUnit.MILLISECONDS.sleep(100);
+                            continue;
+                        default:
+                            hasLock = false;
+                            break;
+                    }
+                } catch (InterruptedException ex) {}
             if(hasLock) this.addExpireTime(conn , expireMode , expireTimes);
         } finally {
             if (conn != null) conn.close();
@@ -153,6 +156,7 @@ public class RedisDistributionLock implements DistributionLock {
                 if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
                 switch (expireMode) {
                     case IGNORE:
+                        TimeUnit.MILLISECONDS.sleep(100);
                         continue;
                     default:
                         hasLock = false;
@@ -227,7 +231,7 @@ public class RedisDistributionLock implements DistributionLock {
             try {
                 conn = this.connFactory.getConnection();
                 byte[] value = conn.get(this.lockKey);
-                if(!Objects.deepEquals(value, this.lockValue)) throw new LockException("You're not own the lock");
+                if(!Objects.deepEquals(value, this.lockValue)) throw new LockException("Lock does not exists!");
                 conn.del(this.lockKey);
             } finally {
                 if (conn != null) conn.close();

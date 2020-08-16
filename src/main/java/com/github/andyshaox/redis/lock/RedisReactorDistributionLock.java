@@ -1,6 +1,7 @@
 package com.github.andyshaox.redis.lock;
 
 import com.github.andyshao.lock.ExpireMode;
+import com.github.andyshao.lock.LockException;
 import com.github.andyshao.lock.ReactorDistributionLock;
 import org.springframework.data.redis.connection.ReactiveRedisConnection;
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
@@ -55,7 +56,19 @@ public class RedisReactorDistributionLock implements ReactorDistributionLock {
 
     @Override
     public Mono<Void> unlock() {
-        return null;
+        final ReactiveRedisConnection conn = this.redisConnectionFactory.getReactiveConnection();
+        return Mono.<Boolean>just(this.lockOwer.canUnlock())
+                .flatMap(canUnLock -> {
+                    if(canUnLock) {
+                        return conn.keyCommands()
+                                .del(ByteBuffer.wrap(this.lockKey))
+                                .<Void>map(omitNum -> {
+                                    if(omitNum <= 0) throw new LockException("Lock does no exists!");
+                                    return null;
+                                });
+                    } else return Mono.<Void>empty();
+                })
+                .doFinally(signalType -> conn.close());
     }
 
     @Override
@@ -88,8 +101,14 @@ public class RedisReactorDistributionLock implements ReactorDistributionLock {
     public Mono<Boolean> tryLock(ExpireMode expireMode, int expireTimes) {
         final ReactiveRedisConnection conn = this.redisConnectionFactory.getReactiveConnection();
         return tryAcquireLock(conn, expireMode, expireTimes)
-                .flatMap(ret -> addExpireTime(conn, expireMode, expireTimes).map(ret2 -> ret))
-                .doOnError(ex -> conn.close());
+                .flatMap(hasLock -> {
+                    if(hasLock) {
+                        return addExpireTime(conn, expireMode, expireTimes)
+                                .map(isSuccess -> true);
+                    }
+                    return Mono.just(false);
+                })
+                .doFinally(signalType -> conn.close());
     }
 
     private static class LockSign {
@@ -222,7 +241,8 @@ public class RedisReactorDistributionLock implements ReactorDistributionLock {
     }
 
     private Mono<Boolean> addExpireTime(ReactiveRedisConnection conn , ExpireMode expireMode , int expireTimes) {
-        if(expireTimes <= 0) return Mono.empty();
+        if(expireTimes < 0) throw new IllegalArgumentException();
+        if(expireTimes == 0) return Mono.just(true);
         //设置锁的使用超时时间
         switch (expireMode) {
             case SECONDS:

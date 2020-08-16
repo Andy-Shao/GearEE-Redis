@@ -2,6 +2,7 @@ package com.github.andyshaox.redis.lock;
 
 import com.github.andyshao.lock.ExpireMode;
 import com.github.andyshaox.redis.IntegrationTest;
+import lombok.extern.slf4j.Slf4j;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +10,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 
 import java.util.concurrent.TimeUnit;
 
+@Slf4j
 public class RedisRepeatCheckIntegrationTest extends IntegrationTest {
     @Autowired
     private RedisConnectionFactory connectFactory;
