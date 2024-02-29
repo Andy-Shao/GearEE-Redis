@@ -18,11 +18,11 @@ public class RedisRepeatCheckIntegrationTest extends IntegrationTest {
     @Test
     public void testRepeatCheck() throws InterruptedException {
         RedisRepeatCheck repeatCheck = new RedisRepeatCheck(connectFactory);
-        boolean isRepeat = repeatCheck.isRepeat("GearEE-Redis:RepeatCheck:testRepeatCheck" , ExpireMode.MILISECONDS , 200);
+        boolean isRepeat = repeatCheck.isRepeat("GearEE-Redis:RepeatCheck:testRepeatCheck" , ExpireMode.MILLISECONDS , 200);
         Assertions.assertThat(isRepeat).isFalse();
         isRepeat = repeatCheck.isRepeat("GearEE-Redis:RepeatCheck:testRepeatCheck");
         Assertions.assertThat(isRepeat).isTrue();
         TimeUnit.SECONDS.sleep(1);
-        isRepeat = repeatCheck.isRepeat("GearEE-Redis:RepeatCheck:testRepeatCheck" , ExpireMode.MILISECONDS , 200);
+        isRepeat = repeatCheck.isRepeat("GearEE-Redis:RepeatCheck:testRepeatCheck" , ExpireMode.MILLISECONDS , 200);
     }
 }

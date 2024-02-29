@@ -15,9 +15,9 @@ class RedisReactiveRepeatCheckTest extends IntegrationTest {
     void isRepeat() {
         RedisReactiveRepeatCheck repeatCheck = new RedisReactiveRepeatCheck(this.factory);
         final String uniqueKey = "GearEE-Redis:ReactiveRepeatCheck:isRepeat";
-        repeatCheck.isRepeat(uniqueKey, ExpireMode.MILISECONDS, 200)
+        repeatCheck.isRepeat(uniqueKey, ExpireMode.MILLISECONDS, 200)
                 .doOnNext(isRepeat -> Assertions.assertThat(isRepeat).isFalse())
-                .then(repeatCheck.isRepeat(uniqueKey, ExpireMode.MILISECONDS, 200))
+                .then(repeatCheck.isRepeat(uniqueKey, ExpireMode.MILLISECONDS, 200))
                 .doOnNext(isRepeat -> Assertions.assertThat(isRepeat).isTrue())
                 .block();
     }
