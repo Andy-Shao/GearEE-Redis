@@ -104,7 +104,7 @@ public class RedisDistributionLock implements DistributionLock {
         case SECONDS:
             conn.expire(this.lockKey , expireTimes);
             break;
-        case MILISECONDS:
+            case MILLISECONDS:
             conn.pExpire(this.lockKey , expireTimes);
             break;
         default:
@@ -179,7 +179,7 @@ public class RedisDistributionLock implements DistributionLock {
         long l = new Date().getTime();
         Expiration expiration = null;
         switch(expireMode) {
-        case MILISECONDS:
+            case MILLISECONDS:
             l = l + expireTimes;
             expiration = Expiration.from(expireTimes, TimeUnit.MILLISECONDS);
             break;

@@ -70,7 +70,7 @@ public class RedisReactiveRepeatCheck implements ReactiveRepeatCheck {
         switch (mode) {
             case SECONDS:
                 return conn.keyCommands().expire(ByteBuffer.wrap(key), Duration.ofSeconds(times));
-            case MILISECONDS:
+            case MILLISECONDS:
                 return conn.keyCommands().pExpire(ByteBuffer.wrap(key), Duration.ofMillis(times));
             default:
                 return Mono.just(false);

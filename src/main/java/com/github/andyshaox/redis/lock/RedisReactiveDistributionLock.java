@@ -213,7 +213,7 @@ public class RedisReactiveDistributionLock implements ReactiveDistributionLock {
         long l = new Date().getTime();
         Expiration expiration = null;
         switch(expireMode) {
-            case MILISECONDS:
+            case MILLISECONDS:
                 l = l + expireTimes;
                 expiration = Expiration.from(expireTimes, TimeUnit.MILLISECONDS);
                 break;
@@ -249,7 +249,7 @@ public class RedisReactiveDistributionLock implements ReactiveDistributionLock {
         switch (expireMode) {
             case SECONDS:
                 return conn.keyCommands().expire(ByteBuffer.wrap(this.lockKey), Duration.ofSeconds(expireTimes));
-            case MILISECONDS:
+            case MILLISECONDS:
                 return conn.keyCommands().pExpire(ByteBuffer.wrap(this.lockKey), Duration.ofMillis(expireTimes));
             default:
                 return Mono.just(true);

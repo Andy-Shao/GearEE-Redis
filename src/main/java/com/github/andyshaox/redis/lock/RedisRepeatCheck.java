@@ -126,7 +126,7 @@ public class RedisRepeatCheck implements RepeatCheck {
         switch (mode) {
         case SECONDS:
             return conn.expire(key, times);
-        case MILISECONDS:
+            case MILLISECONDS:
             return conn.pExpire(key, times);
         default:
             return false;
